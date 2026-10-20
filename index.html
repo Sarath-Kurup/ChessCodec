@@ -3,286 +3,387 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ChessCodec Video</title>
+<meta name="theme-color" content="#000000">
+<title>dfo · Keyed UTF-16 Codec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Righteous&family=Syne:wght@500;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0c1018;--panel:#141b27;--panel2:#1b2534;--line:#2b384a;--text:#eaf0fa;--muted:#96a5ba;--accent:#82e0b3;--blue:#8cb9ff;--danger:#ff8d9b}
+:root{--bg:#000;--text:#e8eefc;--muted:#7f8aa3;--accent:#4d8aff;--bad:#ff6b81;--line:rgba(77,138,255,.24)}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% 0%,#1d3040 0%,transparent 42%),var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-button,input,textarea{font:inherit}
-button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:11px 15px;background:var(--panel2);color:var(--text)}
+html,body{margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:Syne,system-ui,sans-serif;overflow-x:hidden}
+#flow{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:1;max-width:980px;margin:auto;padding:clamp(20px,5vw,48px) clamp(14px,4vw,28px) 28px}
+header{display:flex;align-items:center;gap:clamp(14px,3vw,24px);margin-bottom:26px}
+.mark{font-family:Righteous,sans-serif;font-size:clamp(46px,10vw,78px);line-height:1;color:var(--accent);letter-spacing:-2px}
+h1{font-family:Righteous,sans-serif;font-weight:400;font-size:clamp(21px,4.4vw,32px);margin:0 0 6px;letter-spacing:.2px}
+header p{margin:0;color:var(--muted);font-size:clamp(13px,2.4vw,15px);line-height:1.55;max-width:520px}
+.scene{perspective:1400px}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tabs button{flex:1}
+.tabs button.on{border-color:var(--accent);color:var(--accent)}
+button{font:500 14px "DM Mono",monospace;cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:12px 16px;color:var(--text);background:linear-gradient(160deg,rgba(77,138,255,.14),rgba(255,255,255,.02))}
 button:hover:not(:disabled){border-color:var(--accent)}
-button.primary{background:var(--accent);color:#092018;border-color:var(--accent);font-weight:750}
-button:disabled{opacity:.45;cursor:not-allowed}
-header,main{max-width:1000px;margin:auto;padding:30px 22px 10px}
-main{padding-top:6px;padding-bottom:50px}
-.brand{display:flex;align-items:center;gap:13px}
-.logo{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--accent);color:#092018;font-size:26px;font-weight:900}
-h1{font-size:clamp(25px,4vw,34px);margin:0;letter-spacing:-1px}
-h2{margin:0 0 8px;font-size:19px}
-.sub{color:var(--muted);font-size:14px;line-height:1.6}
-.tabs{display:flex;gap:8px;margin:10px 0 18px}.tabs button{flex:1}.tabs button.active{border-color:var(--accent);color:var(--accent)}
-.panel{background:rgba(20,27,39,.94);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:16px}
-.drop{display:block;border:1px dashed #50647b;border-radius:13px;padding:24px 16px;text-align:center;background:#101722;cursor:pointer;margin:16px 0}
-.drop:hover{border-color:var(--accent)}.drop span{display:block;color:var(--muted);font-size:13px;margin-top:6px}.drop input{display:none}
+button.go{background:var(--accent);border-color:var(--accent);color:#000;font-weight:500}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible,input:focus-visible,textarea:focus-visible,.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.card{transform-style:preserve-3d;transition:transform .25s ease-out;border:1px solid var(--line);border-radius:22px;padding:clamp(16px,3.5vw,28px);margin-bottom:16px;background:linear-gradient(150deg,rgba(77,138,255,.11),rgba(255,255,255,.025) 38%,rgba(0,0,0,.55));box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.z{transform:translateZ(16px)}
+h2{font-family:Righteous,sans-serif;font-weight:400;font-size:21px;margin:0 0 8px}
+.sub{color:var(--muted);font-size:14px;line-height:1.6;margin:0}
+.drop{display:block;border:1px dashed rgba(77,138,255,.5);border-radius:16px;padding:22px 14px;text-align:center;cursor:pointer;margin:16px 0;background:rgba(77,138,255,.05)}
+.drop.over,.drop:hover{border-color:var(--accent);background:rgba(77,138,255,.12)}
+.drop b{display:block;font-weight:700}.drop span{display:block;color:var(--muted);font-size:13px;margin-top:6px}
+.drop input{position:absolute;opacity:0;width:1px;height:1px}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:12px 0}
-.row label{color:var(--muted);font-size:13px;display:flex;gap:7px;align-items:center}
-input[type=password],input[type=file]{background:#0b111a;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;min-width:0}
-input[type=password]{flex:1;min-width:180px}
-textarea{display:block;width:100%;min-height:140px;resize:vertical;border:1px solid var(--line);border-radius:12px;background:#0b111a;color:var(--text);padding:13px;line-height:1.6;font:12px/1.6 ui-monospace,monospace;outline:none}
-.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}
+input[type=password]{flex:1;min-width:200px;font:14px "DM Mono",monospace;color:var(--text);background:rgba(0,0,0,.6);border:1px solid var(--line);border-radius:12px;padding:12px}
+textarea{display:block;width:100%;min-height:120px;resize:vertical;font:12px/1.7 "DM Mono",monospace;color:var(--text);background:rgba(0,0,0,.6);border:1px solid var(--line);border-radius:14px;padding:13px;word-break:break-all}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
-.stat{background:#101722;border:1px solid var(--line);padding:12px;border-radius:11px;min-width:0}
-.stat small{color:var(--muted);display:block;margin-bottom:4px}.stat strong{overflow-wrap:anywhere}
-.status{margin-top:12px;font-size:13px;color:var(--muted);min-height:20px;white-space:pre-line}.status.good{color:var(--accent)}.status.bad{color:var(--danger)}
+.stat{border:1px solid var(--line);border-radius:13px;padding:12px;min-width:0;background:rgba(0,0,0,.45)}
+.stat small{display:block;color:var(--muted);font:12px "DM Mono",monospace;margin-bottom:5px}
+.stat strong{font:500 15px "DM Mono",monospace;overflow-wrap:anywhere}
+.status{margin-top:12px;min-height:20px;font:13px/1.5 "DM Mono",monospace;color:var(--muted);white-space:pre-line}
+.status.good{color:var(--accent)}.status.bad{color:var(--bad)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}
+.note{border-left:3px solid var(--accent);padding:10px 13px;margin-top:16px;background:rgba(77,138,255,.07);color:#b7c6e6;font-size:13px;line-height:1.6;border-radius:0 10px 10px 0}
+.media video,.media img{display:block;max-width:100%;max-height:340px;border-radius:14px;margin:14px auto 0;background:#000}
+.media audio{width:100%;margin-top:14px}
 .hidden{display:none!important}
-.note{border-left:3px solid var(--blue);padding:10px 13px;background:#111c2a;color:#bdcce0;font-size:13px;line-height:1.6;border-radius:0 8px 8px 0;margin-top:14px}
-#preview video,#preview img{max-width:100%;max-height:420px;border-radius:12px;margin-top:14px;background:#000}#preview audio{width:100%;margin-top:14px}
-@media(max-width:600px){.stats{grid-template-columns:1fr 1fr}.panel{padding:16px}}
+footer{text-align:center;color:var(--muted);font:12px "DM Mono",monospace;letter-spacing:.5px;padding:12px 0}
+@media(max-width:620px){.stats{grid-template-columns:1fr 1fr}header{flex-direction:column;align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
 </head>
 <body>
-<header>
-  <div class="brand"><div class="logo">♞</div><div><h1>ChessCodec Video</h1><div class="sub">Turn a video into chessboard coordinates and back</div></div></div>
-</header>
-<main>
-  <div class="tabs">
-    <button id="encTab" class="active" type="button">Encode a video</button>
-    <button id="decTab" type="button">Decode a sequence</button>
+<canvas id="flow" aria-hidden="true"></canvas>
+<div class="wrap">
+  <header>
+    <div class="mark">dfo</div>
+    <div>
+      <h1>Keyed UTF‑16 codec</h1>
+      <p>Turn images and video into text and back. The original bytes are stored untouched, so quality never changes.</p>
+    </div>
+  </header>
+
+  <div class="scene">
+    <div class="tabs">
+      <button id="encTab" class="on" type="button">Encode</button>
+      <button id="decTab" type="button">Decode</button>
+    </div>
+
+    <section id="encPanel" class="card">
+      <h2 class="z">Encode</h2>
+      <p class="sub">Each character carries 14 bits, so the text is only about 1.14x the file size. Add a password to encrypt the file with AES‑256 and scramble the character set.</p>
+      <label class="drop" id="encDrop">
+        <b>Choose or drop an image or video</b>
+        <span>Up to 100 MB</span>
+        <input id="fileInput" type="file" accept="image/*,video/*">
+      </label>
+      <div id="thumb" class="media"></div>
+      <div id="fileInfo" class="sub hidden"></div>
+      <div class="row"><input id="pw" type="password" placeholder="Password (optional)" autocomplete="new-password" aria-label="Password"></div>
+      <button id="encBtn" class="go" type="button" disabled>Encode</button>
+      <div id="encStatus" class="status" role="status"></div>
+      <div id="encResult" class="hidden">
+        <div class="stats">
+          <div class="stat"><small>Original</small><strong id="sOrig">-</strong></div>
+          <div class="stat"><small>Characters</small><strong id="sSyms">-</strong></div>
+          <div class="stat"><small>Text file</small><strong id="sText">-</strong></div>
+          <div class="stat"><small>Time</small><strong id="sTime">-</strong></div>
+        </div>
+        <textarea id="encPreview" readonly spellcheck="false" aria-label="Encoded preview"></textarea>
+        <div class="actions">
+          <button id="dlEnc" class="go" type="button">Download .txt</button>
+          <button id="cpEnc" type="button">Copy text</button>
+        </div>
+      </div>
+      <div class="note">Use the download for anything large. It is saved as UTF‑16 text, which keeps it small. Chat apps may alter pasted text, so send the file when you can. Without a password, anyone can decode it.</div>
+    </section>
+
+    <section id="decPanel" class="card hidden">
+      <h2 class="z">Decode</h2>
+      <p class="sub">Load the .txt file or paste the text. Use the same password you encoded with, or leave it empty if there was none.</p>
+      <label class="drop" id="decDrop">
+        <b>Choose or drop the .txt file</b>
+        <span id="decFileName">No file selected</span>
+        <input id="decFile" type="file" accept=".txt,text/plain">
+      </label>
+      <textarea id="decInput" spellcheck="false" placeholder="Or paste the text here. Pasted text is used instead of the file." aria-label="Paste encoded text"></textarea>
+      <div class="row"><input id="decPw" type="password" placeholder="Password (if used)" autocomplete="off" aria-label="Password"></div>
+      <div class="actions">
+        <button id="decBtn" class="go" type="button">Decode</button>
+        <button id="dlDec" type="button" class="hidden">Download original</button>
+      </div>
+      <div id="decStatus" class="status" role="status"></div>
+      <div id="preview" class="media"></div>
+    </section>
   </div>
 
-  <section id="encPanel" class="panel">
-    <h2>Encode</h2>
-    <p class="sub">Every 12 bits become one pair of squares such as <code>e2-e4</code>. Pairs don't need to be legal moves, so encoding is a straight byte-to-text conversion with no game logic to slow it down.</p>
-    <label class="drop" for="fileInput"><strong>Choose a video (or any file)</strong><span>Maximum 30 MB. Short clips work best.</span><input id="fileInput" type="file"></label>
-    <div id="fileInfo" class="sub hidden"></div>
-    <div class="row">
-      <input id="pw" type="password" placeholder="Password (optional, turns on AES-256 encryption)" autocomplete="new-password">
-      <label><input id="compact" type="checkbox"> Compact format (e2e4, about 33% smaller)</label>
-    </div>
-    <button id="encBtn" class="primary" type="button" disabled>Encode</button>
-    <div id="encStatus" class="status" role="status"></div>
-    <div id="encResult" class="hidden">
-      <div class="stats">
-        <div class="stat"><small>Original</small><strong id="sOrig">-</strong></div>
-        <div class="stat"><small>Pairs</small><strong id="sPairs">-</strong></div>
-        <div class="stat"><small>Text size</small><strong id="sText">-</strong></div>
-        <div class="stat"><small>Time</small><strong id="sTime">-</strong></div>
-      </div>
-      <textarea id="encPreview" readonly spellcheck="false"></textarea>
-      <div class="actions">
-        <button id="dlEnc" class="primary" type="button">Download .txt</button>
-        <button id="cpEnc" type="button">Copy sequence</button>
-      </div>
-    </div>
-    <div class="note">Only a preview is shown here so the page stays fast. Use Download .txt for the full sequence. Without a password this is encoding, not encryption.</div>
-  </section>
-
-  <section id="decPanel" class="panel hidden">
-    <h2>Decode</h2>
-    <p class="sub">Load the .txt file made by the encoder, or paste a sequence. Dashes, spaces and line breaks are ignored.</p>
-    <div class="row"><input id="decFile" type="file" accept=".txt,text/plain"></div>
-    <textarea id="decInput" spellcheck="false" placeholder="Or paste coordinate pairs here. A pasted sequence is used instead of the file."></textarea>
-    <div class="row"><input id="decPw" type="password" placeholder="Password (only if the file was encrypted)" autocomplete="off"></div>
-    <div class="actions">
-      <button id="decBtn" class="primary" type="button">Decode</button>
-      <button id="dlDec" type="button" class="hidden">Download file</button>
-    </div>
-    <div id="decStatus" class="status" role="status"></div>
-    <div id="preview"></div>
-  </section>
-</main>
+  <footer>© dfo · ALL RIGHTS RESERVED</footer>
+</div>
 
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
-const MAGIC=[67,67,86,50]; // "CCV2"
-const MAX=30*1024*1024;
+const MAGIC=[68,70,79,49]; // "DFO1"
+const MAX=100*1024*1024, BASE=0x4E00, N=16384; // 14 bits per CJK character (U+4E00 to U+8DFF)
 const tick=()=>new Promise(r=>setTimeout(r,0));
-const fmt=n=>n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":n<1073741824?(n/1048576).toFixed(2)+" MB":(n/1073741824).toFixed(2)+" GB";
-function setStatus(id,msg,kind=""){const e=$(id);e.textContent=msg;e.className="status "+kind}
+const fmt=n=>n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":(n/1048576).toFixed(2)+" MB";
+const setStatus=(id,m,k="")=>{const e=$(id);e.textContent=m;e.className="status "+k};
+const enc=s=>new TextEncoder().encode(s);
 
 const crcT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
-function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=crcT[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+const crc32=b=>{let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=crcT[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0};
 
-/* ---------- tabs ---------- */
-function showTab(enc){
-  $("encPanel").classList.toggle("hidden",!enc);$("decPanel").classList.toggle("hidden",enc);
-  $("encTab").classList.toggle("active",enc);$("decTab").classList.toggle("active",!enc);
+/* ---------- character tables (identity, or shuffled by the password) ---------- */
+function makeTable(seed){
+  const fwd=new Uint16Array(N);for(let i=0;i<N;i++)fwd[i]=i;
+  if(seed){
+    const dv=new DataView(seed.buffer,seed.byteOffset,seed.length);
+    let a=dv.getUint32(0),b=dv.getUint32(4),c=dv.getUint32(8),d=dv.getUint32(12);
+    const rnd=()=>{a>>>=0;b>>>=0;c>>>=0;d>>>=0;let t=(a+b)|0;a=b^(b>>>9);b=(c+(c<<3))|0;c=(c<<21)|(c>>>11);d=(d+1)|0;t=(t+d)|0;c=(c+t)|0;return(t>>>0)/4294967296};
+    for(let i=0;i<20;i++)rnd();
+    for(let i=N-1;i>0;i--){const j=Math.floor(rnd()*(i+1));const x=fwd[i];fwd[i]=fwd[j];fwd[j]=x}
+  }
+  const inv=new Uint16Array(N);for(let i=0;i<N;i++)inv[fwd[i]]=i;
+  return{fwd,inv};
 }
-$("encTab").onclick=()=>showTab(true);$("decTab").onclick=()=>showTab(false);
+const ID=makeTable(null);
 
-/* ---------- container ----------
- outer: "CCV2" | flags(1) | bodyLen(4) | body
- plain body = inner;  encrypted body = salt(16) | iv(12) | AES-GCM(inner)
- inner: nameLen(2) | name | dataLen(4) | data | crc32(4)                 */
-function buildInner(name,data){
-  const nb=new TextEncoder().encode(name||"video.bin");
-  if(nb.length>65535)throw new Error("Filename is too long.");
-  const out=new Uint8Array(10+nb.length+data.length),dv=new DataView(out.buffer);
-  dv.setUint16(0,nb.length);out.set(nb,2);
-  dv.setUint32(2+nb.length,data.length);out.set(data,6+nb.length);
-  dv.setUint32(6+nb.length+data.length,crc32(data));
-  return out;
-}
-function parseInner(b){
-  if(b.length<10)throw new Error("Data is too short to contain a file.");
-  const dv=new DataView(b.buffer,b.byteOffset,b.length),nl=dv.getUint16(0);
-  if(6+nl>b.length)throw new Error("The filename header is incomplete.");
-  let name;try{name=new TextDecoder("utf-8",{fatal:true}).decode(b.subarray(2,2+nl))}catch{throw new Error("The filename header is corrupted.")}
-  const len=dv.getUint32(2+nl);
-  if(10+nl+len>b.length)throw new Error("The sequence is incomplete or has been truncated.");
-  const data=b.subarray(6+nl,6+nl+len);
-  if(crc32(data)!==dv.getUint32(6+nl+len))throw new Error("Checksum mismatch. The sequence was altered or corrupted.");
-  return{name,data};
-}
-function wrap(body,enc){
-  const o=new Uint8Array(9+body.length),dv=new DataView(o.buffer);
-  o.set(MAGIC,0);o[4]=enc?1:0;dv.setUint32(5,body.length);o.set(body,9);return o;
-}
-function unwrap(b){
-  if(b.length<9||MAGIC.some((v,i)=>b[i]!==v))throw new Error("This is not a ChessCodec Video sequence.");
-  const len=new DataView(b.buffer,b.byteOffset,b.length).getUint32(5);
-  if(9+len>b.length)throw new Error("The sequence is incomplete. Only "+fmt(b.length-9)+" of "+fmt(len)+" were recovered.");
-  return{enc:b[4]&1,body:b.subarray(9,9+len)};
-}
-
-/* ---------- AES-GCM ---------- */
-async function deriveKey(pw,salt,usage){
-  if(!(window.crypto&&crypto.subtle))throw new Error("Encryption needs a secure page (https or localhost, or a local file in most browsers).");
-  const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
-  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,usage);
-}
-async function seal(inner,pw){
-  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
-  const key=await deriveKey(pw,salt,["encrypt"]);
-  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},key,inner));
-  const out=new Uint8Array(28+ct.length);out.set(salt,0);out.set(iv,16);out.set(ct,28);return out;
-}
-async function unseal(body,pw){
-  if(!pw)throw new Error("This file is encrypted. Enter the password.");
-  if(body.length<44)throw new Error("The encrypted block is too short.");
-  const key=await deriveKey(pw,body.slice(0,16),["decrypt"]);
-  try{return new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:body.slice(16,28)},key,body.subarray(28)))}
-  catch{throw new Error("Wrong password, or the data is corrupted.")}
-}
-
-/* ---------- bytes <-> chess squares (6 bits per square, 2 squares per pair) ---------- */
-function bytesToChess(bytes,compact){
-  const squares=Math.ceil(bytes.length*8/6),pairs=Math.ceil(squares/2),per=compact?32:16;
-  const out=new Uint8Array(Math.ceil(pairs*(compact?4.05:6))+16);
-  let o=0,acc=0,nb=0,half=0,t=0;
-  const emit=s=>{
-    out[o++]=97+(s&7);out[o++]=49+(s>>3);
-    if(half===0){if(!compact)out[o++]=45;half=1}
-    else{half=0;t++;if(t%per===0)out[o++]=10;else if(!compact)out[o++]=32}
-  };
+function bytesToCodes(bytes,fwd){
+  const out=new Uint16Array(Math.ceil(bytes.length*8/14));
+  let k=0,acc=0,nb=0;
   for(let i=0;i<bytes.length;i++){
     acc=(acc<<8)|bytes[i];nb+=8;
-    while(nb>=6){nb-=6;emit((acc>>nb)&63)}
-    acc&=(1<<nb)-1;
+    if(nb>=14){nb-=14;out[k++]=BASE+fwd[(acc>>nb)&16383];acc&=(1<<nb)-1}
   }
-  if(nb>0)emit((acc<<(6-nb))&63);
-  if(half===1)emit(0);
-  return{text:out.subarray(0,o),pairs:t};
+  if(nb>0)out[k++]=BASE+fwd[(acc<<(14-nb))&16383];
+  return out;
 }
-function chessToBytes(u){
-  const n=u.length,out=new Uint8Array(Math.ceil(n*3/8)+4);
-  let o=0,acc=0,nb=0,i=0;
-  while(i<n){
-    let c=u[i];if(c>=65&&c<=72)c+=32;
-    if(c>=97&&c<=104){
-      const d=u[i+1];
-      if(!(d>=49&&d<=56))throw new Error("Invalid square at character "+(i+1)+". Expected a letter a-h followed by a digit 1-8.");
-      acc=(acc<<6)|((d-49)<<3)|(c-97);nb+=6;
-      if(nb>=8){nb-=8;out[o++]=(acc>>nb)&255}
-      acc&=(1<<nb)-1;i+=2;
-    }else if(c===32||c===10||c===13||c===9||c===45||c===44||c===0xEF||c===0xBB||c===0xBF)i++;
-    else throw new Error("Unexpected character '"+String.fromCharCode(c)+"' at position "+(i+1)+".");
+function codesToBytes(codes,inv){
+  const out=new Uint8Array(Math.ceil(codes.length*14/8)+2);
+  let o=0,acc=0,nb=0;
+  for(let i=0;i<codes.length;i++){
+    const c=codes[i],off=c-BASE;
+    if(off>=0&&off<N){
+      acc=(acc<<14)|inv[off];nb+=14;
+      while(nb>=8){nb-=8;out[o++]=(acc>>nb)&255}
+      acc&=(1<<nb)-1;
+    }else if(c<=32||c===0xFEFF||c===0x200B||c===0xA0){/* whitespace is ignored */}
+    else throw new Error("Unexpected character U+"+c.toString(16).toUpperCase().padStart(4,"0")+" at position "+(i+1)+".");
   }
   return out.subarray(0,o);
 }
 
+/* ---------- container ----------
+ text   = [10 salt characters, only with a password] + keyed characters of:
+ stream = bodyLen(4) | body ;  body = inner, or iv(12) + AES-GCM(inner)
+ inner  = "DFO1" | nameLen(2) name | mimeLen(1) mime | dataLen(4) data | crc32(4) */
+function buildInner(name,mime,data){
+  const nb=enc(name||"file"),mb=enc(mime||"application/octet-stream").subarray(0,255);
+  const out=new Uint8Array(15+nb.length+mb.length+data.length),dv=new DataView(out.buffer);
+  let p=0;out.set(MAGIC,0);p=4;
+  dv.setUint16(p,nb.length);p+=2;out.set(nb,p);p+=nb.length;
+  out[p++]=mb.length;out.set(mb,p);p+=mb.length;
+  dv.setUint32(p,data.length);p+=4;out.set(data,p);p+=data.length;
+  dv.setUint32(p,crc32(data));
+  return out;
+}
+function parseInner(b){
+  if(b.length<15||MAGIC.some((v,i)=>b[i]!==v))throw new Error("This is not a dfo sequence. If it was locked with a password, enter it.");
+  const dv=new DataView(b.buffer,b.byteOffset,b.length),td=new TextDecoder("utf-8",{fatal:true});
+  let p=4;const nl=dv.getUint16(p);p+=2;
+  if(p+nl+1>b.length)throw new Error("The sequence is incomplete or cut short.");
+  const name=td.decode(b.subarray(p,p+nl));p+=nl;
+  const ml=b[p++];if(p+ml+4>b.length)throw new Error("The sequence is incomplete or cut short.");
+  const mime=td.decode(b.subarray(p,p+ml));p+=ml;
+  const len=dv.getUint32(p);p+=4;
+  if(p+len+4>b.length)throw new Error("The sequence is incomplete or cut short.");
+  const data=b.subarray(p,p+len);
+  if(crc32(data)!==dv.getUint32(p+len))throw new Error("Checksum mismatch. The text was altered or damaged.");
+  return{name,mime,data};
+}
+
+/* ---------- password: PBKDF2 gives an AES key and the alphabet seed ---------- */
+async function derive(pw,salt){
+  if(!(window.crypto&&crypto.subtle))throw new Error("Passwords need a secure page (https, localhost, or a local file in most browsers).");
+  const km=await crypto.subtle.importKey("raw",enc(pw),"PBKDF2",false,["deriveBits"]);
+  const bits=new Uint8Array(await crypto.subtle.deriveBits({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},km,512));
+  const aes=await crypto.subtle.importKey("raw",bits.slice(0,32),"AES-GCM",false,["encrypt","decrypt"]);
+  return{aes,tbl:makeTable(bits.slice(32))};
+}
+
+async function encodeFile(name,mime,data,pw){
+  const inner=buildInner(name,mime,data);
+  let body,tbl=ID,salt=null;
+  if(pw){
+    salt=crypto.getRandomValues(new Uint8Array(16));
+    const k=await derive(pw,salt),iv=crypto.getRandomValues(new Uint8Array(12));
+    const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},k.aes,inner));
+    body=new Uint8Array(12+ct.length);body.set(iv,0);body.set(ct,12);tbl=k.tbl;
+  }else body=inner;
+  const stream=new Uint8Array(4+body.length);
+  new DataView(stream.buffer).setUint32(0,body.length);stream.set(body,4);
+  const main=bytesToCodes(stream,tbl.fwd);
+  if(!salt)return main;
+  const sc=bytesToCodes(salt,ID.fwd),out=new Uint16Array(sc.length+main.length);
+  out.set(sc,0);out.set(main,sc.length);return out;
+}
+async function decodeCodes(codes,pw){
+  let tbl=ID,start=0,aes=null;
+  if(pw){
+    if(codes.length<10)throw new Error("The sequence is too short.");
+    const salt=codesToBytes(codes.subarray(0,10),ID.inv).subarray(0,16);
+    const k=await derive(pw,salt);tbl=k.tbl;aes=k.aes;start=10;
+  }
+  const bytes=codesToBytes(codes.subarray(start),tbl.inv);
+  const bad=new Error("Wrong password, or the sequence is damaged.");
+  if(bytes.length<4)throw pw?bad:new Error("The sequence is too short.");
+  const len=new DataView(bytes.buffer,bytes.byteOffset,bytes.length).getUint32(0);
+  if(4+len>bytes.length)throw pw?bad:new Error("The sequence is incomplete or cut short.");
+  let body=bytes.subarray(4,4+len);
+  if(pw){
+    if(len<29)throw bad;
+    try{body=new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:body.slice(0,12)},aes,body.subarray(12)))}catch{throw bad}
+  }
+  return parseInner(body);
+}
+
+/* ---------- helpers ---------- */
+const MIME={mp4:"video/mp4",m4v:"video/mp4",webm:"video/webm",mov:"video/quicktime",ogv:"video/ogg",gif:"image/gif",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",webp:"image/webp",avif:"image/avif",bmp:"image/bmp",svg:"image/svg+xml"};
+const toStr=(codes,n)=>{let s="";for(let i=0;i<n&&i<codes.length;i+=8192)s+=String.fromCharCode.apply(null,codes.subarray(i,Math.min(i+8192,n,codes.length)));return s};
+const strToCodes=s=>{const o=new Uint16Array(s.length);for(let i=0;i<s.length;i++)o[i]=s.charCodeAt(i);return o};
+function saveBlob(blob,name){const u=URL.createObjectURL(blob),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000)}
+function showMedia(box,url,mime){
+  box.textContent="";const kind=mime.split("/")[0];
+  if(kind!=="video"&&kind!=="image"&&kind!=="audio")return;
+  const el=document.createElement(kind==="image"?"img":kind);el.src=url;
+  if(kind==="video")el.muted=true;
+  if(kind!=="image")el.controls=true;
+  box.appendChild(el);
+}
+function bindDrop(drop,input){
+  ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over")}));
+  ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over")}));
+  drop.addEventListener("drop",e=>{if(e.dataTransfer.files.length){input.files=e.dataTransfer.files;input.dispatchEvent(new Event("change"))}});
+}
+
+/* ---------- tabs ---------- */
+function showTab(e){
+  $("encPanel").classList.toggle("hidden",!e);$("decPanel").classList.toggle("hidden",e);
+  $("encTab").classList.toggle("on",e);$("decTab").classList.toggle("on",!e);
+}
+$("encTab").onclick=()=>showTab(true);$("decTab").onclick=()=>showTab(false);
+
 /* ---------- encoder UI ---------- */
-let file=null,encBlob=null,encName="encoded";
-const est=()=>file?fmt(Math.round(file.size*($("compact").checked?2.7:4))):"";
-function updateInfo(){if(!file)return;$("fileInfo").textContent=file.name+" · "+fmt(file.size)+" · about "+est()+" of text";$("fileInfo").classList.remove("hidden")}
-$("compact").onchange=updateInfo;
+let file=null,outCodes=null,thumbUrl=null,decUrl=null,decBlob=null,decName="decoded";
+bindDrop($("encDrop"),$("fileInput"));bindDrop($("decDrop"),$("decFile"));
 $("fileInput").onchange=()=>{
-  const f=$("fileInput").files[0];$("encResult").classList.add("hidden");
-  if(!f){file=null;$("encBtn").disabled=true;return}
-  if(f.size>MAX){file=null;$("encBtn").disabled=true;$("fileInfo").classList.add("hidden");setStatus("encStatus","File is larger than the 30 MB limit.","bad");return}
-  file=f;$("encBtn").disabled=false;setStatus("encStatus","");updateInfo();
+  const f=$("fileInput").files[0];$("encResult").classList.add("hidden");outCodes=null;
+  if(thumbUrl){URL.revokeObjectURL(thumbUrl);thumbUrl=null}$("thumb").textContent="";
+  if(!f){file=null;$("encBtn").disabled=true;$("fileInfo").classList.add("hidden");return}
+  if(f.size>MAX){file=null;$("encBtn").disabled=true;setStatus("encStatus","That file is over the 100 MB limit.","bad");return}
+  file=f;$("encBtn").disabled=false;setStatus("encStatus","");
+  $("fileInfo").textContent=f.name+" · "+fmt(f.size)+" · about "+fmt(Math.round(f.size*8/14*2))+" as text";
+  $("fileInfo").classList.remove("hidden");
+  thumbUrl=URL.createObjectURL(f);showMedia($("thumb"),thumbUrl,f.type||MIME[f.name.split(".").pop().toLowerCase()]||"");
 };
 $("encBtn").onclick=async()=>{
   if(!file)return;
+  const pw=$("pw").value;
   $("encBtn").disabled=true;$("encResult").classList.add("hidden");
-  setStatus("encStatus",$("pw").value?"Encrypting and encoding...":"Encoding...");
-  await tick();
+  setStatus("encStatus",pw?"Encrypting and encoding...":"Encoding...");await tick();
   try{
-    const t0=performance.now();
-    const data=new Uint8Array(await file.arrayBuffer());
-    const inner=buildInner(file.name,data);
-    const pw=$("pw").value;
-    const payload=pw?wrap(await seal(inner,pw),true):wrap(inner,false);
+    const t0=performance.now(),data=new Uint8Array(await file.arrayBuffer());
+    const mime=file.type||MIME[file.name.split(".").pop().toLowerCase()]||"application/octet-stream";
+    outCodes=await encodeFile(file.name,mime,data,pw);
     await tick();
-    const{text,pairs}=bytesToChess(payload,$("compact").checked);
-    // verify by decoding what we just produced
-    const back=chessToBytes(text);
-    if(back.length<payload.length)throw new Error("Self-check failed: output is too short.");
-    for(let i=0;i<payload.length;i++)if(back[i]!==payload[i])throw new Error("Self-check failed at byte "+i+".");
-    encBlob=new Blob([text],{type:"text/plain;charset=utf-8"});encName=file.name+".chesscodec.txt";
-    $("sOrig").textContent=fmt(file.size);$("sPairs").textContent=pairs.toLocaleString();
-    $("sText").textContent=fmt(text.length)+" ("+(text.length/file.size).toFixed(1)+"x)";
+    const back=await decodeCodes(outCodes,pw); // self-check
+    if(back.data.length!==data.length)throw new Error("Self-check failed.");
+    const bytes=outCodes.length*2+2;
+    $("sOrig").textContent=fmt(file.size);$("sSyms").textContent=outCodes.length.toLocaleString();
+    $("sText").textContent=fmt(bytes)+" ("+(bytes/file.size).toFixed(2)+"x)";
     $("sTime").textContent=((performance.now()-t0)/1000).toFixed(2)+" s";
-    const cut=Math.min(text.length,3000);
-    $("encPreview").value=new TextDecoder().decode(text.subarray(0,cut))+(text.length>cut?"\n... ("+fmt(text.length-cut)+" more in the download)":"");
+    $("encPreview").value=toStr(outCodes,500)+(outCodes.length>500?"...":"");
     $("encResult").classList.remove("hidden");
-    setStatus("encStatus","Done. Round trip verified"+(pw?" (encrypted).":"."),"good");
+    setStatus("encStatus","Done. Decoded back and verified"+(pw?" with your password.":"."),"good");
   }catch(e){setStatus("encStatus",e.message||"Could not encode this file.","bad")}
   finally{$("encBtn").disabled=!file}
 };
-function saveBlob(blob,name){
-  const u=URL.createObjectURL(blob),a=document.createElement("a");
-  a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
-}
-$("dlEnc").onclick=()=>{if(encBlob)saveBlob(encBlob,encName)};
+$("dlEnc").onclick=()=>{if(outCodes)saveBlob(new Blob([new Uint8Array([255,254]),outCodes],{type:"text/plain;charset=utf-16le"}),file.name+".dfo16.txt")};
 $("cpEnc").onclick=async()=>{
-  if(!encBlob)return;
-  if(encBlob.size>8*1048576){setStatus("encStatus","Too large to copy. Use Download .txt instead.","bad");return}
-  try{await navigator.clipboard.writeText(await encBlob.text());setStatus("encStatus","Sequence copied.","good")}
-  catch{setStatus("encStatus","Copy was blocked. Use Download .txt instead.","bad")}
+  if(!outCodes)return;
+  if(outCodes.length>4e6){setStatus("encStatus","Too large to copy. Use Download .txt.","bad");return}
+  try{await navigator.clipboard.writeText(toStr(outCodes,outCodes.length));setStatus("encStatus","Copied.","good")}
+  catch{setStatus("encStatus","Copy was blocked. Use Download .txt.","bad")}
 };
 
 /* ---------- decoder UI ---------- */
-const MIME={mp4:"video/mp4",m4v:"video/mp4",webm:"video/webm",mov:"video/quicktime",mkv:"video/x-matroska",ogv:"video/ogg",gif:"image/gif",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",webp:"image/webp",mp3:"audio/mpeg",wav:"audio/wav",ogg:"audio/ogg",m4a:"audio/mp4"};
-let decBlob=null,decName="decoded.bin",decUrl=null;
-const safeName=n=>(n.replace(/[\/\\:*?"<>|\x00-\x1F]/g,"_").replace(/^\.+$/,"decoded").trim())||"decoded.bin";
+$("decFile").onchange=()=>{const f=$("decFile").files[0];$("decFileName").textContent=f?f.name+" · "+fmt(f.size):"No file selected"};
 $("decBtn").onclick=async()=>{
   $("decBtn").disabled=true;$("dlDec").classList.add("hidden");$("preview").textContent="";
   if(decUrl){URL.revokeObjectURL(decUrl);decUrl=null}
   setStatus("decStatus","Decoding...");await tick();
   try{
-    const t0=performance.now(),pasted=$("decInput").value.trim(),f=$("decFile").files[0];
-    let u;
-    if(pasted)u=new TextEncoder().encode(pasted);
-    else if(f)u=new Uint8Array(await f.arrayBuffer());
-    else throw new Error("Load a .txt file or paste a sequence first.");
-    const{enc,body}=unwrap(chessToBytes(u));
-    const{name,data}=parseInner(enc?await unseal(body,$("decPw").value):body);
-    decName=safeName(name);
-    const ext=decName.split(".").pop().toLowerCase(),type=MIME[ext]||"application/octet-stream";
-    decBlob=new Blob([data],{type});decUrl=URL.createObjectURL(decBlob);
-    const kind=type.split("/")[0];
-    if(kind==="video"||kind==="audio"||kind==="image"){
-      const el=document.createElement(kind==="image"?"img":kind);
-      el.src=decUrl;if(kind!=="image")el.controls=true;$("preview").appendChild(el);
-    }
+    const t0=performance.now(),pasted=$("decInput").value,f=$("decFile").files[0];
+    let codes;
+    if(pasted.trim())codes=strToCodes(pasted);
+    else if(f){
+      const buf=await f.arrayBuffer(),h=new Uint8Array(buf,0,Math.min(2,buf.byteLength));
+      if(h[0]===0xFF&&h[1]===0xFE)codes=new Uint16Array(buf,2,(buf.byteLength-2)>>1);
+      else if(h[0]===0xFE&&h[1]===0xFF){const dv=new DataView(buf);codes=new Uint16Array((buf.byteLength-2)>>1);for(let i=0;i<codes.length;i++)codes[i]=dv.getUint16(2+i*2)}
+      else codes=strToCodes(new TextDecoder().decode(buf));
+    }else throw new Error("Load a .txt file or paste the text first.");
+    const r=await decodeCodes(codes,$("decPw").value);
+    decName=(r.name.replace(/[\/\\:*?"<>|\x00-\x1F]/g,"_").trim())||"decoded";
+    decBlob=new Blob([r.data],{type:r.mime});decUrl=URL.createObjectURL(decBlob);
+    showMedia($("preview"),decUrl,r.mime);
     $("dlDec").classList.remove("hidden");
-    setStatus("decStatus","Decoded "+decName+" ("+fmt(data.length)+") in "+((performance.now()-t0)/1000).toFixed(2)+" s. Checksum OK.","good");
-  }catch(e){setStatus("decStatus",e.message||"Could not decode this sequence.","bad")}
+    setStatus("decStatus","Restored "+decName+" ("+fmt(r.data.length)+") in "+((performance.now()-t0)/1000).toFixed(2)+" s. Checksum OK.","good");
+  }catch(e){setStatus("decStatus",e.message||"Could not decode this text.","bad")}
   finally{$("decBtn").disabled=false}
 };
 $("dlDec").onclick=()=>{if(decBlob)saveBlob(decBlob,decName)};
+
+/* ---------- magnetic flow lines ---------- */
+(()=>{
+  const cv=$("flow"),cx=cv.getContext("2d"),still=matchMedia("(prefers-reduced-motion:reduce)").matches;
+  let W,H,mx=-9999,my=-9999,t=0;
+  function size(){const d=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*d;cv.height=H*d;cx.setTransform(d,0,0,d,0,0);if(still)draw()}
+  function draw(){
+    cx.clearRect(0,0,W,H);
+    const g=W<600?32:38,R=230;
+    cx.lineWidth=1;cx.lineCap="round";
+    cx.beginPath();const near=[];
+    for(let y=g/2;y<H;y+=g)for(let x=g/2;x<W;x+=g){
+      const a=Math.sin(x*.006+t)*1.7+Math.cos(y*.007-t*.8)*1.7;
+      let vx=Math.cos(a),vy=Math.sin(a),k=0;
+      const dx=mx-x,dy=my-y,d=Math.hypot(dx,dy);
+      if(d<R&&d>1){k=1-d/R;vx=vx*(1-k)+dx/d*k;vy=vy*(1-k)+dy/d*k;const m=Math.hypot(vx,vy)||1;vx/=m;vy/=m}
+      const l=8+k*14;
+      if(k>0)near.push(x,y,vx*l,vy*l);else{cx.moveTo(x,y);cx.lineTo(x+vx*l,y+vy*l)}
+    }
+    cx.strokeStyle="rgba(77,138,255,.16)";cx.stroke();
+    cx.beginPath();for(let i=0;i<near.length;i+=4){cx.moveTo(near[i],near[i+1]);cx.lineTo(near[i]+near[i+2],near[i+1]+near[i+3])}
+    cx.strokeStyle="rgba(77,138,255,.8)";cx.stroke();
+  }
+  function loop(){t+=.004;draw();requestAnimationFrame(loop)}
+  addEventListener("resize",size);
+  addEventListener("pointermove",e=>{mx=e.clientX;my=e.clientY});
+  document.addEventListener("pointerleave",()=>{mx=my=-9999});
+  size();if(!still)loop();
+})();
+
+/* ---------- gentle 3D tilt (mouse only) ---------- */
+if(!matchMedia("(prefers-reduced-motion:reduce)").matches)document.querySelectorAll(".card").forEach(c=>{
+  c.addEventListener("pointermove",e=>{
+    if(e.pointerType!=="mouse")return;
+    const r=c.getBoundingClientRect(),px=(e.clientX-r.left)/r.width-.5,py=(e.clientY-r.top)/r.height-.5;
+    c.style.transform="rotateX("+(-py*2.2)+"deg) rotateY("+(px*2.2)+"deg) scale3d(1.004,1.004,1.004)";
+  });
+  c.addEventListener("pointerleave",()=>{c.style.transform=""});
+});
 </script>
 </body>
 </html>
