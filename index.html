@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChessCodec Video</title>
+<style>
+:root{--bg:#0c1018;--panel:#141b27;--panel2:#1b2534;--line:#2b384a;--text:#eaf0fa;--muted:#96a5ba;--accent:#82e0b3;--blue:#8cb9ff;--danger:#ff8d9b}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 15% 0%,#1d3040 0%,transparent 42%),var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,textarea{font:inherit}
+button{cursor:pointer;border:1px solid var(--line);border-radius:10px;padding:11px 15px;background:var(--panel2);color:var(--text)}
+button:hover:not(:disabled){border-color:var(--accent)}
+button.primary{background:var(--accent);color:#092018;border-color:var(--accent);font-weight:750}
+button:disabled{opacity:.45;cursor:not-allowed}
+header,main{max-width:1000px;margin:auto;padding:30px 22px 10px}
+main{padding-top:6px;padding-bottom:50px}
+.brand{display:flex;align-items:center;gap:13px}
+.logo{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--accent);color:#092018;font-size:26px;font-weight:900}
+h1{font-size:clamp(25px,4vw,34px);margin:0;letter-spacing:-1px}
+h2{margin:0 0 8px;font-size:19px}
+.sub{color:var(--muted);font-size:14px;line-height:1.6}
+.tabs{display:flex;gap:8px;margin:10px 0 18px}.tabs button{flex:1}.tabs button.active{border-color:var(--accent);color:var(--accent)}
+.panel{background:rgba(20,27,39,.94);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:16px}
+.drop{display:block;border:1px dashed #50647b;border-radius:13px;padding:24px 16px;text-align:center;background:#101722;cursor:pointer;margin:16px 0}
+.drop:hover{border-color:var(--accent)}.drop span{display:block;color:var(--muted);font-size:13px;margin-top:6px}.drop input{display:none}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.row label{color:var(--muted);font-size:13px;display:flex;gap:7px;align-items:center}
+input[type=password],input[type=file]{background:#0b111a;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:10px;min-width:0}
+input[type=password]{flex:1;min-width:180px}
+textarea{display:block;width:100%;min-height:140px;resize:vertical;border:1px solid var(--line);border-radius:12px;background:#0b111a;color:var(--text);padding:13px;line-height:1.6;font:12px/1.6 ui-monospace,monospace;outline:none}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0}
+.stat{background:#101722;border:1px solid var(--line);padding:12px;border-radius:11px;min-width:0}
+.stat small{color:var(--muted);display:block;margin-bottom:4px}.stat strong{overflow-wrap:anywhere}
+.status{margin-top:12px;font-size:13px;color:var(--muted);min-height:20px;white-space:pre-line}.status.good{color:var(--accent)}.status.bad{color:var(--danger)}
+.hidden{display:none!important}
+.note{border-left:3px solid var(--blue);padding:10px 13px;background:#111c2a;color:#bdcce0;font-size:13px;line-height:1.6;border-radius:0 8px 8px 0;margin-top:14px}
+#preview video,#preview img{max-width:100%;max-height:420px;border-radius:12px;margin-top:14px;background:#000}#preview audio{width:100%;margin-top:14px}
+@media(max-width:600px){.stats{grid-template-columns:1fr 1fr}.panel{padding:16px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><div class="logo">♞</div><div><h1>ChessCodec Video</h1><div class="sub">Turn a video into chessboard coordinates and back</div></div></div>
+</header>
+<main>
+  <div class="tabs">
+    <button id="encTab" class="active" type="button">Encode a video</button>
+    <button id="decTab" type="button">Decode a sequence</button>
+  </div>
+
+  <section id="encPanel" class="panel">
+    <h2>Encode</h2>
+    <p class="sub">Every 12 bits become one pair of squares such as <code>e2-e4</code>. Pairs don't need to be legal moves, so encoding is a straight byte-to-text conversion with no game logic to slow it down.</p>
+    <label class="drop" for="fileInput"><strong>Choose a video (or any file)</strong><span>Maximum 30 MB. Short clips work best.</span><input id="fileInput" type="file"></label>
+    <div id="fileInfo" class="sub hidden"></div>
+    <div class="row">
+      <input id="pw" type="password" placeholder="Password (optional, turns on AES-256 encryption)" autocomplete="new-password">
+      <label><input id="compact" type="checkbox"> Compact format (e2e4, about 33% smaller)</label>
+    </div>
+    <button id="encBtn" class="primary" type="button" disabled>Encode</button>
+    <div id="encStatus" class="status" role="status"></div>
+    <div id="encResult" class="hidden">
+      <div class="stats">
+        <div class="stat"><small>Original</small><strong id="sOrig">-</strong></div>
+        <div class="stat"><small>Pairs</small><strong id="sPairs">-</strong></div>
+        <div class="stat"><small>Text size</small><strong id="sText">-</strong></div>
+        <div class="stat"><small>Time</small><strong id="sTime">-</strong></div>
+      </div>
+      <textarea id="encPreview" readonly spellcheck="false"></textarea>
+      <div class="actions">
+        <button id="dlEnc" class="primary" type="button">Download .txt</button>
+        <button id="cpEnc" type="button">Copy sequence</button>
+      </div>
+    </div>
+    <div class="note">Only a preview is shown here so the page stays fast. Use Download .txt for the full sequence. Without a password this is encoding, not encryption.</div>
+  </section>
+
+  <section id="decPanel" class="panel hidden">
+    <h2>Decode</h2>
+    <p class="sub">Load the .txt file made by the encoder, or paste a sequence. Dashes, spaces and line breaks are ignored.</p>
+    <div class="row"><input id="decFile" type="file" accept=".txt,text/plain"></div>
+    <textarea id="decInput" spellcheck="false" placeholder="Or paste coordinate pairs here. A pasted sequence is used instead of the file."></textarea>
+    <div class="row"><input id="decPw" type="password" placeholder="Password (only if the file was encrypted)" autocomplete="off"></div>
+    <div class="actions">
+      <button id="decBtn" class="primary" type="button">Decode</button>
+      <button id="dlDec" type="button" class="hidden">Download file</button>
+    </div>
+    <div id="decStatus" class="status" role="status"></div>
+    <div id="preview"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const MAGIC=[67,67,86,50]; // "CCV2"
+const MAX=30*1024*1024;
+const tick=()=>new Promise(r=>setTimeout(r,0));
+const fmt=n=>n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":n<1073741824?(n/1048576).toFixed(2)+" MB":(n/1073741824).toFixed(2)+" GB";
+function setStatus(id,msg,kind=""){const e=$(id);e.textContent=msg;e.className="status "+kind}
+
+const crcT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=crcT[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+
+/* ---------- tabs ---------- */
+function showTab(enc){
+  $("encPanel").classList.toggle("hidden",!enc);$("decPanel").classList.toggle("hidden",enc);
+  $("encTab").classList.toggle("active",enc);$("decTab").classList.toggle("active",!enc);
+}
+$("encTab").onclick=()=>showTab(true);$("decTab").onclick=()=>showTab(false);
+
+/* ---------- container ----------
+ outer: "CCV2" | flags(1) | bodyLen(4) | body
+ plain body = inner;  encrypted body = salt(16) | iv(12) | AES-GCM(inner)
+ inner: nameLen(2) | name | dataLen(4) | data | crc32(4)                 */
+function buildInner(name,data){
+  const nb=new TextEncoder().encode(name||"video.bin");
+  if(nb.length>65535)throw new Error("Filename is too long.");
+  const out=new Uint8Array(10+nb.length+data.length),dv=new DataView(out.buffer);
+  dv.setUint16(0,nb.length);out.set(nb,2);
+  dv.setUint32(2+nb.length,data.length);out.set(data,6+nb.length);
+  dv.setUint32(6+nb.length+data.length,crc32(data));
+  return out;
+}
+function parseInner(b){
+  if(b.length<10)throw new Error("Data is too short to contain a file.");
+  const dv=new DataView(b.buffer,b.byteOffset,b.length),nl=dv.getUint16(0);
+  if(6+nl>b.length)throw new Error("The filename header is incomplete.");
+  let name;try{name=new TextDecoder("utf-8",{fatal:true}).decode(b.subarray(2,2+nl))}catch{throw new Error("The filename header is corrupted.")}
+  const len=dv.getUint32(2+nl);
+  if(10+nl+len>b.length)throw new Error("The sequence is incomplete or has been truncated.");
+  const data=b.subarray(6+nl,6+nl+len);
+  if(crc32(data)!==dv.getUint32(6+nl+len))throw new Error("Checksum mismatch. The sequence was altered or corrupted.");
+  return{name,data};
+}
+function wrap(body,enc){
+  const o=new Uint8Array(9+body.length),dv=new DataView(o.buffer);
+  o.set(MAGIC,0);o[4]=enc?1:0;dv.setUint32(5,body.length);o.set(body,9);return o;
+}
+function unwrap(b){
+  if(b.length<9||MAGIC.some((v,i)=>b[i]!==v))throw new Error("This is not a ChessCodec Video sequence.");
+  const len=new DataView(b.buffer,b.byteOffset,b.length).getUint32(5);
+  if(9+len>b.length)throw new Error("The sequence is incomplete. Only "+fmt(b.length-9)+" of "+fmt(len)+" were recovered.");
+  return{enc:b[4]&1,body:b.subarray(9,9+len)};
+}
+
+/* ---------- AES-GCM ---------- */
+async function deriveKey(pw,salt,usage){
+  if(!(window.crypto&&crypto.subtle))throw new Error("Encryption needs a secure page (https or localhost, or a local file in most browsers).");
+  const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,usage);
+}
+async function seal(inner,pw){
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(pw,salt,["encrypt"]);
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},key,inner));
+  const out=new Uint8Array(28+ct.length);out.set(salt,0);out.set(iv,16);out.set(ct,28);return out;
+}
+async function unseal(body,pw){
+  if(!pw)throw new Error("This file is encrypted. Enter the password.");
+  if(body.length<44)throw new Error("The encrypted block is too short.");
+  const key=await deriveKey(pw,body.slice(0,16),["decrypt"]);
+  try{return new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:body.slice(16,28)},key,body.subarray(28)))}
+  catch{throw new Error("Wrong password, or the data is corrupted.")}
+}
+
+/* ---------- bytes <-> chess squares (6 bits per square, 2 squares per pair) ---------- */
+function bytesToChess(bytes,compact){
+  const squares=Math.ceil(bytes.length*8/6),pairs=Math.ceil(squares/2),per=compact?32:16;
+  const out=new Uint8Array(Math.ceil(pairs*(compact?4.05:6))+16);
+  let o=0,acc=0,nb=0,half=0,t=0;
+  const emit=s=>{
+    out[o++]=97+(s&7);out[o++]=49+(s>>3);
+    if(half===0){if(!compact)out[o++]=45;half=1}
+    else{half=0;t++;if(t%per===0)out[o++]=10;else if(!compact)out[o++]=32}
+  };
+  for(let i=0;i<bytes.length;i++){
+    acc=(acc<<8)|bytes[i];nb+=8;
+    while(nb>=6){nb-=6;emit((acc>>nb)&63)}
+    acc&=(1<<nb)-1;
+  }
+  if(nb>0)emit((acc<<(6-nb))&63);
+  if(half===1)emit(0);
+  return{text:out.subarray(0,o),pairs:t};
+}
+function chessToBytes(u){
+  const n=u.length,out=new Uint8Array(Math.ceil(n*3/8)+4);
+  let o=0,acc=0,nb=0,i=0;
+  while(i<n){
+    let c=u[i];if(c>=65&&c<=72)c+=32;
+    if(c>=97&&c<=104){
+      const d=u[i+1];
+      if(!(d>=49&&d<=56))throw new Error("Invalid square at character "+(i+1)+". Expected a letter a-h followed by a digit 1-8.");
+      acc=(acc<<6)|((d-49)<<3)|(c-97);nb+=6;
+      if(nb>=8){nb-=8;out[o++]=(acc>>nb)&255}
+      acc&=(1<<nb)-1;i+=2;
+    }else if(c===32||c===10||c===13||c===9||c===45||c===44||c===0xEF||c===0xBB||c===0xBF)i++;
+    else throw new Error("Unexpected character '"+String.fromCharCode(c)+"' at position "+(i+1)+".");
+  }
+  return out.subarray(0,o);
+}
+
+/* ---------- encoder UI ---------- */
+let file=null,encBlob=null,encName="encoded";
+const est=()=>file?fmt(Math.round(file.size*($("compact").checked?2.7:4))):"";
+function updateInfo(){if(!file)return;$("fileInfo").textContent=file.name+" · "+fmt(file.size)+" · about "+est()+" of text";$("fileInfo").classList.remove("hidden")}
+$("compact").onchange=updateInfo;
+$("fileInput").onchange=()=>{
+  const f=$("fileInput").files[0];$("encResult").classList.add("hidden");
+  if(!f){file=null;$("encBtn").disabled=true;return}
+  if(f.size>MAX){file=null;$("encBtn").disabled=true;$("fileInfo").classList.add("hidden");setStatus("encStatus","File is larger than the 30 MB limit.","bad");return}
+  file=f;$("encBtn").disabled=false;setStatus("encStatus","");updateInfo();
+};
+$("encBtn").onclick=async()=>{
+  if(!file)return;
+  $("encBtn").disabled=true;$("encResult").classList.add("hidden");
+  setStatus("encStatus",$("pw").value?"Encrypting and encoding...":"Encoding...");
+  await tick();
+  try{
+    const t0=performance.now();
+    const data=new Uint8Array(await file.arrayBuffer());
+    const inner=buildInner(file.name,data);
+    const pw=$("pw").value;
+    const payload=pw?wrap(await seal(inner,pw),true):wrap(inner,false);
+    await tick();
+    const{text,pairs}=bytesToChess(payload,$("compact").checked);
+    // verify by decoding what we just produced
+    const back=chessToBytes(text);
+    if(back.length<payload.length)throw new Error("Self-check failed: output is too short.");
+    for(let i=0;i<payload.length;i++)if(back[i]!==payload[i])throw new Error("Self-check failed at byte "+i+".");
+    encBlob=new Blob([text],{type:"text/plain;charset=utf-8"});encName=file.name+".chesscodec.txt";
+    $("sOrig").textContent=fmt(file.size);$("sPairs").textContent=pairs.toLocaleString();
+    $("sText").textContent=fmt(text.length)+" ("+(text.length/file.size).toFixed(1)+"x)";
+    $("sTime").textContent=((performance.now()-t0)/1000).toFixed(2)+" s";
+    const cut=Math.min(text.length,3000);
+    $("encPreview").value=new TextDecoder().decode(text.subarray(0,cut))+(text.length>cut?"\n... ("+fmt(text.length-cut)+" more in the download)":"");
+    $("encResult").classList.remove("hidden");
+    setStatus("encStatus","Done. Round trip verified"+(pw?" (encrypted).":"."),"good");
+  }catch(e){setStatus("encStatus",e.message||"Could not encode this file.","bad")}
+  finally{$("encBtn").disabled=!file}
+};
+function saveBlob(blob,name){
+  const u=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+$("dlEnc").onclick=()=>{if(encBlob)saveBlob(encBlob,encName)};
+$("cpEnc").onclick=async()=>{
+  if(!encBlob)return;
+  if(encBlob.size>8*1048576){setStatus("encStatus","Too large to copy. Use Download .txt instead.","bad");return}
+  try{await navigator.clipboard.writeText(await encBlob.text());setStatus("encStatus","Sequence copied.","good")}
+  catch{setStatus("encStatus","Copy was blocked. Use Download .txt instead.","bad")}
+};
+
+/* ---------- decoder UI ---------- */
+const MIME={mp4:"video/mp4",m4v:"video/mp4",webm:"video/webm",mov:"video/quicktime",mkv:"video/x-matroska",ogv:"video/ogg",gif:"image/gif",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",webp:"image/webp",mp3:"audio/mpeg",wav:"audio/wav",ogg:"audio/ogg",m4a:"audio/mp4"};
+let decBlob=null,decName="decoded.bin",decUrl=null;
+const safeName=n=>(n.replace(/[\/\\:*?"<>|\x00-\x1F]/g,"_").replace(/^\.+$/,"decoded").trim())||"decoded.bin";
+$("decBtn").onclick=async()=>{
+  $("decBtn").disabled=true;$("dlDec").classList.add("hidden");$("preview").textContent="";
+  if(decUrl){URL.revokeObjectURL(decUrl);decUrl=null}
+  setStatus("decStatus","Decoding...");await tick();
+  try{
+    const t0=performance.now(),pasted=$("decInput").value.trim(),f=$("decFile").files[0];
+    let u;
+    if(pasted)u=new TextEncoder().encode(pasted);
+    else if(f)u=new Uint8Array(await f.arrayBuffer());
+    else throw new Error("Load a .txt file or paste a sequence first.");
+    const{enc,body}=unwrap(chessToBytes(u));
+    const{name,data}=parseInner(enc?await unseal(body,$("decPw").value):body);
+    decName=safeName(name);
+    const ext=decName.split(".").pop().toLowerCase(),type=MIME[ext]||"application/octet-stream";
+    decBlob=new Blob([data],{type});decUrl=URL.createObjectURL(decBlob);
+    const kind=type.split("/")[0];
+    if(kind==="video"||kind==="audio"||kind==="image"){
+      const el=document.createElement(kind==="image"?"img":kind);
+      el.src=decUrl;if(kind!=="image")el.controls=true;$("preview").appendChild(el);
+    }
+    $("dlDec").classList.remove("hidden");
+    setStatus("decStatus","Decoded "+decName+" ("+fmt(data.length)+") in "+((performance.now()-t0)/1000).toFixed(2)+" s. Checksum OK.","good");
+  }catch(e){setStatus("decStatus",e.message||"Could not decode this sequence.","bad")}
+  finally{$("decBtn").disabled=false}
+};
+$("dlDec").onclick=()=>{if(decBlob)saveBlob(decBlob,decName)};
+</script>
+</body>
+</html>
